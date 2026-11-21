@@ -15,8 +15,8 @@ class TuyaFixture
         @socket = socket
         begin
           serve(socket)
-        rescue IO::Error
-          # The client disconnected.
+        rescue IO::Error | Tuya::ProtocolError
+          # The client disconnected or tried a different protocol.
         ensure
           socket.close
           @socket = nil
@@ -44,6 +44,8 @@ class TuyaFixture
       payload = Bytes.empty
       case request.command
       when 10
+        return unless request.payload[0]? == '{'.ord
+
         payload = {dps: {"1" => @on}}.to_json.to_slice
       when 7
         if @reject_commands
@@ -55,6 +57,8 @@ class TuyaFixture
           @on = value
           @writes << value
         end
+      else
+        return
       end
       body = IO::Memory.new
       body.write_bytes(code, IO::ByteFormat::BigEndian)

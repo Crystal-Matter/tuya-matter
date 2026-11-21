@@ -12,7 +12,6 @@ power_switch:
     device_id: "your-device-id"
     key: "0123456789abcdef"
     name: "Desk Plug"
-    version: "3.5"
   - ip: "192.0.2.11"
     device_id: "another-device-id"
     key: "fedcba9876543210"
@@ -24,12 +23,12 @@ power_switch:
 | `device_id` | Required | Tuya device ID, unique within the config |
 | `key` | Required | 16-byte Tuya local key |
 | `name` | Generated | Matter label, up to 32 bytes |
-| `version` | `"3.3"` | Use the device's protocol version, from `"3.1"` through `"3.5"` |
+| `version` | Automatic | Optional protocol override, from `"3.1"` through `"3.5"` |
 | `port` | `6668` | Tuya TCP port |
 | `datapoint` | `1` | Boolean power datapoint |
 | `query_datapoints` | Device default | IDs to query for devices that use the device22 query format. Include the power datapoint. |
 
-Restart the bridge after editing the config. Keep the Matter state file or volume to retain pairing and endpoint numbers for devices already configured.
+The bridge detects each device’s Tuya version using LAN announcements and a status query. Devices that are offline are retried in the background. Restart the bridge after editing the config.
 
 ## Docker Compose
 
@@ -40,9 +39,13 @@ docker compose up -d --build
 docker compose logs -f tuya-matter
 ```
 
-Compose mounts `./config.yaml` read-only and stores Matter state in the `matter-data` volume. The container runs as UID 10001 and needs read access to the config file. Host networking provides Matter UDP and multicast DNS.
+Compose mounts `./config.yaml` read-only and stores Matter state in the local `./matter-data/` directory. Host networking provides Matter UDP and multicast DNS. The container defaults to UID and GID 1000. If your files use a different owner, set `MATTER_UID` and `MATTER_GID` in `.env` to the values from `id -u` and `id -g`. The container needs read access to the config and write access to `matter-data/`.
 
 Use the manual pairing code or QR payload printed on first start to add the bridge to your Matter controller. The bridge uses the Crystal Matter development attestation identity.
+
+### Back up or move the bridge
+
+Stop the bridge before backing up `matter-data/`. Copy that directory and `config.yaml` to the new host before starting Compose there. Keep the backup private because it contains Matter pairing keys and Tuya local keys.
 
 ## Run locally
 

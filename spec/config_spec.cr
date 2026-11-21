@@ -2,7 +2,7 @@ require "spec"
 require "../src/tuya_matter"
 
 describe TuyaMatter::Config do
-  it "accepts a list of switches with defaults and per-device overrides" do
+  it "defaults to automatic protocol detection and accepts an override" do
     config = TuyaMatter::Config.parse(<<-YAML)
       power_switch: [
         {"ip": "192.0.2.1", "device_id": "first", "key": "0123456789abcdef"},
@@ -11,9 +11,9 @@ describe TuyaMatter::Config do
       ]
       YAML
     config.power_switches.size.should eq(2)
-    config.power_switches[0].client.version.should eq(Tuya::Version::V33)
-    config.power_switches[1].client.version.should eq(Tuya::Version::V35)
-    config.power_switches[1].client.on_datapoint.should eq("7")
+    config.power_switches[0].version_override.should be_nil
+    config.power_switches[1].version_override.should eq(Tuya::Version::V35)
+    config.power_switches[1].client(Tuya::Version::V35).on_datapoint.should eq("7")
     config.power_switches[1].label.should eq("Desk")
   end
 

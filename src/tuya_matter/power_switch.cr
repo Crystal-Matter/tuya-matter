@@ -4,13 +4,18 @@ module TuyaMatter
     private alias Status = Matter::InteractionModel::Status
     private alias Info = Matter::Cluster::BridgedDeviceBasicInformation
 
+    private PROBE_TIMEOUT = 1.5.seconds
+
+    @config : SwitchConfig?
     @client : Tuya::Client?
     @info : Info?
     @last_failure : String?
     @operations = Mutex.new
 
-    def attach(@client : Tuya::Client, info : Info) : Nil
+    def attach(config : SwitchConfig, info : Info) : Nil
+      @config = config
       @info = info
+      @client = config.version_override.try { |version| config.client(version) }
       info.reachable = false
     end
 
@@ -27,11 +32,18 @@ module TuyaMatter
     end
 
     # Publish the device's physical state without issuing a control command.
-    def refresh : Nil
+    def refresh(announced_version : Tuya::Version? = nil) : Nil
       @operations.synchronize do
-        client = @client || return
-        report(client.on?)
+        if client = @client
+          report(client.on?)
+        elsif config = @config
+          detect_protocol(config, announced_version)
+        end
       rescue error : Tuya::Error | KeyError | IO::Error
+        if error.is_a?(Tuya::ProtocolError) && @config.try(&.version).nil?
+          @client.try(&.close)
+          @client = nil
+        end
         report_failure(error)
       end
     end
@@ -40,9 +52,39 @@ module TuyaMatter
       @operations.synchronize do
         @client.try(&.close)
         @client = nil
+        @config = nil
       end
     rescue error : IO::Error
       Log.warn { "Closing Tuya switch endpoint #{endpoint_id.number} failed (#{error.class})" }
+    end
+
+    private def detect_protocol(config : SwitchConfig, announced_version : Tuya::Version?) : Nil
+      candidates = Tuya::Version.values.reverse!
+      if announced_version
+        candidates.delete(announced_version)
+        candidates.unshift(announced_version)
+      end
+
+      candidates.each do |version|
+        state = probe(config, version)
+        next if state.nil?
+
+        @client = config.client(version)
+        Log.info { "Detected Tuya #{version} for switch endpoint #{endpoint_id.number}" }
+        report(state)
+        return
+      end
+
+      raise Tuya::ProtocolError.new("Could not detect a Tuya protocol that reports the configured power datapoint")
+    end
+
+    private def probe(config : SwitchConfig, version : Tuya::Version) : Bool?
+      client = config.client(version, timeout: PROBE_TIMEOUT)
+      client.on?
+    rescue Tuya::Error | KeyError | IO::Error
+      nil
+    ensure
+      client.try(&.close)
     end
 
     private def write_power(desired : Bool?) : Status

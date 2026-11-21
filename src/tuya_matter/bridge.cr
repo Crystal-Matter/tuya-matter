@@ -19,7 +19,7 @@ module TuyaMatter
     end
 
     @identity : Identity
-    @switches = [] of PowerSwitch
+    @switches = {} of PowerSwitch => SwitchConfig
     @stop_polling = Channel(Nil).new
     @poll_workers = [] of Channel(Nil)
     @shutdown_started = Atomic(Bool).new(false)
@@ -71,7 +71,7 @@ module TuyaMatter
       begin
         @stop_polling.close
         @poll_workers.each(&.receive?)
-        @switches.each(&.disconnect)
+        @switches.each_key(&.disconnect)
       ensure
         super
       end
@@ -86,20 +86,39 @@ module TuyaMatter
     end
 
     protected def on_started : Nil
-      @switches.each do |switch|
+      versions = {} of Tuple(String, String) => Tuya::Version
+      discovery_done = discover_versions(versions) if @switches.values.any?(&.version.nil?)
+
+      @switches.each do |switch, config|
         done = Channel(Nil).new
         @poll_workers << done
         spawn do
-          poll(switch)
+          discovery_done.try(&.receive?) if config.version.nil?
+          poll(switch, versions[{config.device_id, config.ip}]?)
         ensure
           done.close
         end
       end
     end
 
-    private def poll(switch : PowerSwitch) : Nil
+    private def discover_versions(versions : Hash(Tuple(String, String), Tuya::Version)) : Channel(Nil)
+      done = Channel(Nil).new
+      @poll_workers << done
+      spawn do
+        Tuya::Discovery.scan(2.seconds).each do |device|
+          versions[{device.id, device.ip}] = device.version
+        end
+      rescue error : Tuya::Error
+        Log.debug { "Tuya discovery unavailable (#{error.message})" }
+      ensure
+        done.close
+      end
+      done
+    end
+
+    private def poll(switch : PowerSwitch, announced_version : Tuya::Version?) : Nil
       until @stop_polling.closed?
-        switch.refresh
+        switch.refresh(announced_version)
         select
         when @stop_polling.receive?
           break
@@ -133,8 +152,8 @@ module TuyaMatter
     private def bind_switch(endpoint : Matter::Endpoint, info : Info, entry : SwitchConfig) : Nil
       info.node_label = entry.label
       switch = endpoint.get_cluster!(PowerSwitch)
-      switch.attach(entry.client, info)
-      @switches << switch
+      switch.attach(entry, info)
+      @switches[switch] = entry
     end
 
     private def load_identity(storage : Matter::Storage::Backend) : Identity

@@ -3,4 +3,3 @@ power_switch:
     device_id: "your-device-id"
     key: "0123456789abcdef"
     name: "Desk Plug"
-    version: "3.3"

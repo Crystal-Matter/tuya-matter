@@ -6,16 +6,21 @@ module TuyaMatter
     getter ip : String
     getter device_id : String
     getter name : String?
-    getter version : String = "3.3"
+    getter version : String?
     getter port : Int32 = Tuya::Client::DEFAULT_PORT
     getter datapoint : Int32 = 1
     getter query_datapoints : Array(Int32)?
 
     @key : String
 
-    def client : Tuya::Client
-      Tuya::Client.new(@ip, @device_id, @key, version: @version, port: @port,
-        on_datapoint: @datapoint, query_datapoints: @query_datapoints)
+    def version_override : Tuya::Version?
+      @version.try { |version| Tuya::Version.parse(version) }
+    end
+
+    def client(version : Tuya::Version, *, timeout : Time::Span = 5.seconds) : Tuya::Client
+      query = @query_datapoints || ([1, @datapoint].uniq if version.v32?)
+      Tuya::Client.new(@ip, @device_id, @key, version: version, port: @port, timeout: timeout,
+        on_datapoint: @datapoint, query_datapoints: query)
     end
 
     def label : String
@@ -44,7 +49,7 @@ module TuyaMatter
     end
 
     private def validate_version(path : String) : Nil
-      Tuya::Version.parse(@version)
+      version_override
     rescue ArgumentError
       raise ArgumentError.new("#{path}.version must be between 3.1 and 3.5")
     end

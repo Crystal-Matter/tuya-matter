@@ -3,6 +3,7 @@ services:
     build: .
     network_mode: host
     restart: unless-stopped
+    user: "${MATTER_UID:-1000}:${MATTER_GID:-1000}"
     environment:
       MATTER_PORT: "${MATTER_PORT:-5540}"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
@@ -13,7 +14,8 @@ services:
         read_only: true
         bind:
           create_host_path: false
-      - matter-data:/data
-
-volumes:
-  matter-data:
+      - type: bind
+        source: ./matter-data
+        target: /data
+        bind:
+          create_host_path: false

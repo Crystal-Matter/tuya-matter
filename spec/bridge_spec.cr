@@ -6,7 +6,7 @@ private alias Info = Matter::Cluster::BridgedDeviceBasicInformation
 private alias Status = Matter::InteractionModel::Status
 
 private def switch_entry(id : String, port : Int32, name : String = id) : NamedTuple
-  {ip: "127.0.0.1", device_id: id, key: TuyaFixture::KEY, port: port, version: "3.1", name: name}
+  {ip: "127.0.0.1", device_id: id, key: TuyaFixture::KEY, port: port, name: name}
 end
 
 private def config_for(*switches) : TuyaMatter::Config
@@ -18,7 +18,7 @@ private def bridge_for(config : TuyaMatter::Config, storage : Matter::Storage::B
 end
 
 describe TuyaMatter::Bridge do
-  it "bridges switches as distinct outlets and forwards Matter commands to Tuya" do
+  it "detects the switch protocol before forwarding Matter commands to Tuya" do
     first = TuyaFixture.new
     second = TuyaFixture.new
     bridge = bridge_for(config_for(switch_entry("First", first.port), switch_entry("Second", second.port)))
@@ -37,6 +37,7 @@ describe TuyaMatter::Bridge do
     cluster.refresh
     info.reachable?.should be_true
     cluster.on_off?.should be_false
+    first.writes.should be_empty
 
     cluster.invoke_command(1_u32).should eq(Status.success)
     first.on?.should be_true
@@ -63,7 +64,9 @@ describe TuyaMatter::Bridge do
     first.close
     cluster.refresh
     info.reachable?.should be_false
-    bridge.node.endpoint!(3_u16).get_cluster!(TuyaMatter::PowerSwitch).invoke_command(1_u32).should eq(Status.success)
+    other_switch = bridge.node.endpoint!(3_u16).get_cluster!(TuyaMatter::PowerSwitch)
+    other_switch.refresh
+    other_switch.invoke_command(1_u32).should eq(Status.success)
     second.on?.should be_true
   ensure
     bridge.try &.shutdown!
