@@ -1,0 +1,6 @@
+power_switch:
+  - ip: "192.0.2.10"
+    device_id: "your-device-id"
+    key: "0123456789abcdef"
+    name: "Desk Plug"
+    version: "3.3"

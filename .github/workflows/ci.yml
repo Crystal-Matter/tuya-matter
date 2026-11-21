@@ -1,0 +1,21 @@
+name: CI
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: "1.22"
+      - run: shards install --frozen
+      - run: crystal tool format --check
+      - run: shards build ameba
+      - run: bin/ameba
+      - run: crystal spec
+      - run: shards build tuya-matter
+      - run: docker compose config --quiet

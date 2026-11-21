@@ -1,0 +1,19 @@
+services:
+  tuya-matter:
+    build: .
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      MATTER_PORT: "${MATTER_PORT:-5540}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+    volumes:
+      - type: bind
+        source: ./config.yaml
+        target: /app/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+      - matter-data:/data
+
+volumes:
+  matter-data:

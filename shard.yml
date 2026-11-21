@@ -1,0 +1,23 @@
+name: tuya-matter
+version: 0.1.0
+crystal: ">= 1.22.0"
+license: MIT
+
+dependencies:
+  matter:
+    github: Crystal-Matter/matter
+    branch: develop
+  tuya_client:
+    github: stakach/tuya-client
+    branch: main
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: "~> 1.7.0"
+
+targets:
+  tuya-matter:
+    main: src/tuya-matter.cr
+  ameba:
+    main: lib/ameba/src/cli.cr

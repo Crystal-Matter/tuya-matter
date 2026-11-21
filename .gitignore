@@ -1,0 +1,8 @@
+/bin/
+/lib/
+/data/
+/docs/
+/config.yaml
+/config.yml
+/.env
+/.env.*
