@@ -41,7 +41,7 @@ Endpoint 0 is the Matter root and endpoint 1 is the bridge aggregator. On a fres
 
 After a switch comes online, the bridge marks it unreachable on the fifth consecutive failed status poll or as soon as a power command fails. A successful poll or power command restores reachability and resets the failure count.
 
-Some Tuya devices accept only one local TCP client at a time. If a device resets connections, close other apps or integrations using it before retrying. [TinyTuya troubleshooting](https://github.com/jasonacox/tinytuya#troubleshooting)
+The bridge opens a fresh TCP connection for each poll or power command and closes it afterward. Some Tuya devices accept only one local TCP client at a time. If a device resets connections, close other apps or integrations using it before retrying. [TinyTuya troubleshooting](https://github.com/jasonacox/tinytuya#troubleshooting)
 
 ## Docker Compose
 

@@ -4,6 +4,7 @@ class TuyaFixture
   property? on : Bool = false
   property? reject_commands : Bool = false
   property? omit_power_datapoint : Bool = false
+  getter connections = 0
   getter writes = [] of Bool
 
   @server = TCPServer.new("127.0.0.1", 0)
@@ -13,6 +14,7 @@ class TuyaFixture
   def initialize(@reset_connections : Bool = false)
     spawn do
       while socket = @server.accept?
+        @connections += 1
         @socket = socket
         begin
           if @reset_connections

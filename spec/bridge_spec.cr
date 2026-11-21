@@ -71,6 +71,25 @@ describe TuyaMatter::Bridge do
     second.try &.close
   end
 
+  it "opens a fresh connection for each poll and command" do
+    fixture = TuyaFixture.new
+    bridge = bridge_for(config_for(switch_entry("Kettle", fixture.port).merge({version: "3.1"})))
+    power = bridge.node.endpoint!(2_u16).get_cluster!(TuyaMatter::PowerSwitch)
+
+    2.times { power.refresh }
+    fixture.connections.should eq(2)
+
+    power.invoke_command(1_u32).should eq(Status.success)
+    fixture.connections.should eq(3)
+
+    power.invoke_command(2_u32).should eq(Status.success)
+    fixture.connections.should eq(4)
+    fixture.writes.should eq([true, false])
+  ensure
+    bridge.try &.shutdown!
+    fixture.try &.close
+  end
+
   it "identifies the endpoint and the socket error when a device resets connections" do
     fixture = TuyaFixture.new(reset_connections: true)
 

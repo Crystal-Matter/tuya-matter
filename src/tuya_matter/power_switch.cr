@@ -45,21 +45,20 @@ module TuyaMatter
         end
       rescue error : Tuya::Error | KeyError | IO::Error
         if error.is_a?(Tuya::ProtocolError) && @config.try(&.version).nil?
-          @client.try(&.close)
           @client = nil
         end
         report_status_failure(error)
+      ensure
+        close_connection(client)
       end
     end
 
     def disconnect : Nil
       @operations.synchronize do
-        @client.try(&.close)
+        close_connection(@client)
         @client = nil
         @config = nil
       end
-    rescue error : IO::Error
-      Log.warn { "Closing Tuya switch #{switch_description} failed (#{error.class})" }
     end
 
     private def detect_protocol(config : SwitchConfig, announced_version : Tuya::Version?) : Nil
@@ -91,7 +90,7 @@ module TuyaMatter
       failures[failure_message(error)] << version
       nil
     ensure
-      client.try(&.close)
+      close_connection(client)
     end
 
     private def read_power(client : Tuya::Client) : Bool
@@ -116,7 +115,15 @@ module TuyaMatter
       rescue error : Tuya::Error | KeyError | IO::Error
         report_failure("Power command failed. #{failure_message(error)}")
         Status.failure
+      ensure
+        close_connection(client)
       end
+    end
+
+    private def close_connection(client : Tuya::Client?) : Nil
+      client.try(&.close)
+    rescue error : IO::Error
+      Log.warn { "Closing Tuya switch #{switch_description} failed (#{error.class})" }
     end
 
     private def report(value : Bool) : Nil
