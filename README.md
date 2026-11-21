@@ -1,6 +1,6 @@
 # Tuya Matter
 
-Bridge Tuya LAN power switches to a Matter controller. The bridge exposes each switch as an On/Off Plug-in Unit. It forwards On, Off, and Toggle commands, polls each switch every 15 seconds, and reports unreachable devices independently. [Tuya client](https://github.com/stakach/tuya-client) · [Crystal Matter](https://github.com/Crystal-Matter/matter)
+Bridge Tuya LAN power switches to a Matter controller. The bridge exposes each switch as an On/Off Plug-in Unit. It forwards On, Off, and Toggle commands, polls each switch every 30 seconds, and reports unreachable devices independently. [Tuya client](https://github.com/stakach/tuya-client) · [Crystal Matter](https://github.com/Crystal-Matter/matter)
 
 ## Configuration
 
