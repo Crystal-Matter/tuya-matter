@@ -4,7 +4,9 @@ Bridge Tuya LAN power switches to a Matter controller. The bridge exposes each s
 
 ## Configuration
 
-Copy `config.example.yaml` to `config.yaml` and fill in the local details for each device.
+1. Set up your devices in the **Tuya** app. This includes compatible Kogan and Mercator Ikuu kettles.
+2. Retrieve each device's `device_id` and local `key` by following the [Tuya Local Key guide](https://github.com/vineetchoudhary/tuya-local-key).
+3. Copy `config.example.yaml` to `config.yaml` and fill in each device's local IP address, `device_id`, and `key`.
 
 ```yaml
 power_switch:
