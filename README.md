@@ -39,7 +39,7 @@ Set `assume_off_when_missing: false` to treat a status reply that omits the powe
 
 Endpoint 0 is the Matter root and endpoint 1 is the bridge aggregator. On a fresh setup, the first two switches use endpoints 2 and 3. The bridge keeps assigned endpoint numbers in Matter state across restarts and identifies each switch by name and address in its logs.
 
-After a switch comes online, the bridge marks it unreachable on the fifth consecutive failed status poll or as soon as a power command fails. A successful poll or power command restores reachability and resets the failure count.
+A switch becomes reachable after its first successful status poll or power command. After that, a failed power command marks it unreachable. Failed status polls are logged at debug level and leave the last reported state in place. A successful poll or power command restores reachability.
 
 The bridge opens a fresh TCP connection for each poll or power command and closes it afterward. Some Tuya devices accept only one local TCP client at a time. If a device resets connections, close other apps or integrations using it before retrying. [TinyTuya troubleshooting](https://github.com/jasonacox/tinytuya#troubleshooting)
 

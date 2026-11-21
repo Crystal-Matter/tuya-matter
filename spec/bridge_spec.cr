@@ -100,7 +100,7 @@ describe TuyaMatter::Bridge do
       endpoint.get_cluster!(Info).reachable?.should be_false
 
       logs.check(:info, /Configured Tuya switch "Upstairs Kettle" at 127\.0\.0\.1:\d+ \(Matter endpoint 3\)/)
-      logs.check(:warn, /"Upstairs Kettle" at 127\.0\.0\.1:\d+ \(Matter endpoint 3\) is unreachable\. Status probes failed/)
+      logs.check(:debug, /"Upstairs Kettle" at 127\.0\.0\.1:\d+ \(Matter endpoint 3\) status poll failed\. Status probes failed/)
       logs.entry.message.should contain("Connection reset by peer")
       logs.entry.message.should contain("3.5")
       logs.entry.message.should contain("3.1")
@@ -112,44 +112,32 @@ describe TuyaMatter::Bridge do
     fixture.try &.close
   end
 
-  it "marks a switch unreachable on the fifth consecutive failed poll or a failed power command" do
+  it "keeps a reachable switch online through failed polls until a power command fails" do
     fixture = TuyaFixture.new
     bridge = bridge_for(config_for(switch_entry("Kettle", fixture.port)))
     endpoint = bridge.node.endpoint!(2_u16)
     power = endpoint.get_cluster!(TuyaMatter::PowerSwitch)
     info = endpoint.get_cluster!(Info)
 
+    fixture.on = true
     power.refresh
     info.reachable?.should be_true
 
-    2.times do
-      fixture.reset_connections = true
-      4.times do
-        power.refresh
-        info.reachable?.should be_true
-      end
-      fixture.reset_connections = false
-      power.refresh
-      info.reachable?.should be_true
-    end
-
     fixture.reset_connections = true
-    4.times { power.refresh }
+    6.times { power.refresh }
     info.reachable?.should be_true
+    power.on_off?.should be_true
+    power.invoke_command(0_u32).should eq(Status.failure)
+    info.reachable?.should be_false
+    power.on_off?.should be_true
+    fixture.writes.should be_empty
+
     power.refresh
     info.reachable?.should be_false
 
     fixture.reset_connections = false
     power.refresh
     info.reachable?.should be_true
-
-    fixture.reset_connections = true
-    power.refresh
-    info.reachable?.should be_true
-    power.invoke_command(1_u32).should eq(Status.failure)
-    info.reachable?.should be_false
-    power.on_off?.should be_false
-    fixture.writes.should be_empty
   ensure
     bridge.try &.shutdown!
     fixture.try &.close
@@ -184,8 +172,9 @@ describe TuyaMatter::Bridge do
     fixture.writes.should be_empty
 
     fixture.close
-    5.times { power.refresh }
-    info.reachable?.should be_false
+    power.refresh
+    info.reachable?.should be_true
+    power.on_off?.should be_true
   ensure
     bridge.try &.shutdown!
     fixture.try &.close
