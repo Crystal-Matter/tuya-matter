@@ -47,6 +47,17 @@ Use the manual pairing code or QR payload printed on first start to add the brid
 
 Stop the bridge before backing up `matter-data/`. Copy that directory and `config.yaml` to the new host before starting Compose there. Keep the backup private because it contains Matter pairing keys and Tuya local keys.
 
+### Publish the Docker image
+
+Sign in to Docker Hub with access to `stakach/tuya-matter`, then run the publish script.
+
+```sh
+docker login
+./scripts/publish-image.sh
+```
+
+The script pulls the latest Crystal Alpine builder, builds statically linked binaries for `linux/amd64` and `linux/arm64`, and publishes both as `stakach/tuya-matter:latest` with a scratch runtime.
+
 ## Run locally
 
 Requires Crystal 1.22 or later and OpenSSL.
