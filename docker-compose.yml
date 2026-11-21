@@ -1,6 +1,7 @@
 services:
   tuya-matter:
-    build: .
+    image: stakach/tuya-matter:latest
+    # build: .
     network_mode: host
     restart: unless-stopped
     user: "${MATTER_UID:-1000}:${MATTER_GID:-1000}"

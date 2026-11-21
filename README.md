@@ -32,20 +32,33 @@ The bridge detects each device’s Tuya version using LAN announcements and a st
 
 ## Docker Compose
 
-On a Linux host on the same LAN as the Matter controller and Tuya devices, run:
+Run these commands on a Linux host on the same LAN as the Matter controller and Tuya devices.
+
+Compose mounts `./config.yaml` read-only and stores Matter state in `./matter-data/`. Host networking provides Matter UDP and multicast DNS. The container user needs read access to `config.yaml`.
+
+Compose runs as UID and GID 1000 by default. To run as a different deployment account, set `MATTER_UID` and `MATTER_GID` in `.env` to that account's `id -u` and `id -g`.
+
+Make sure the container user can write to `matter-data/` and any restored files before starting Compose. If you need to fix ownership, this command uses the default IDs.
 
 ```sh
-docker compose up -d --build
+sudo chown -R 1000:1000 ./matter-data/
+```
+
+Replace both numbers with the configured IDs if you changed them.
+
+```sh
+docker compose pull
+docker compose up -d
 docker compose logs -f tuya-matter
 ```
 
-Compose mounts `./config.yaml` read-only and stores Matter state in the local `./matter-data/` directory. Host networking provides Matter UDP and multicast DNS. The container defaults to UID and GID 1000. If your files use a different owner, set `MATTER_UID` and `MATTER_GID` in `.env` to the values from `id -u` and `id -g`. The container needs read access to the config and write access to `matter-data/`.
+To build locally, uncomment `build: .` in `docker-compose.yml` and run `docker compose up -d --build`.
 
 Use the manual pairing code or QR payload printed on first start to add the bridge to your Matter controller. The bridge uses the Crystal Matter development attestation identity.
 
 ### Back up or move the bridge
 
-Stop the bridge before backing up `matter-data/`. Copy that directory and `config.yaml` to the new host before starting Compose there. Keep the backup private because it contains Matter pairing keys and Tuya local keys.
+Stop the bridge before backing up `matter-data/`. Copy that directory and `config.yaml` to the new host, then check ownership before starting Compose. Keep the backup private because it contains Matter pairing keys and Tuya local keys.
 
 ### Publish the Docker image
 
