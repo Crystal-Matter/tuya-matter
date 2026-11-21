@@ -11,11 +11,12 @@ RUN mkdir -p bin \
 FROM alpine:3.24
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates gmp libgcc libssl3 yaml zlib \
+RUN apk add --no-cache ca-certificates gmp libgcc libssl3 pcre2 yaml zlib \
     && addgroup -g 10001 matter \
     && adduser -D -H -u 10001 -G matter matter \
     && install -d -m 0700 -o matter -g matter /data
 COPY --from=build /app/bin/tuya-matter /usr/local/bin/tuya-matter
+RUN /usr/local/bin/tuya-matter --help > /dev/null
 
 ENV MATTER_STORAGE_FILE=/data/tuya-matter.yml
 USER 10001:10001
