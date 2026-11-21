@@ -3,6 +3,7 @@ class TuyaFixture
 
   property? on : Bool = false
   property? reject_commands : Bool = false
+  property? omit_power_datapoint : Bool = false
   getter writes = [] of Bool
 
   @server = TCPServer.new("127.0.0.1", 0)
@@ -50,7 +51,11 @@ class TuyaFixture
       when 10
         return unless request.payload[0]? == '{'.ord
 
-        payload = {dps: {"1" => @on}}.to_json.to_slice
+        payload = if @omit_power_datapoint
+                    %({"dps":{"5":25}}).to_slice
+                  else
+                    {dps: {"1" => @on}}.to_json.to_slice
+                  end
       when 7
         if @reject_commands
           code = 1_u32

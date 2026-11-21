@@ -9,6 +9,7 @@ module TuyaMatter
     getter version : String?
     getter port : Int32 = Tuya::Client::DEFAULT_PORT
     getter datapoint : Int32 = 1
+    getter? assume_off_when_missing : Bool = false
     getter query_datapoints : Array(Int32)?
 
     @key : String

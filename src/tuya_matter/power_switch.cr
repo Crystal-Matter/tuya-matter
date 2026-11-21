@@ -37,7 +37,7 @@ module TuyaMatter
     def refresh(announced_version : Tuya::Version? = nil) : Nil
       @operations.synchronize do
         if client = @client
-          report(client.on?)
+          report(read_power(client))
         elsif config = @config
           detect_protocol(config, announced_version)
         end
@@ -84,7 +84,7 @@ module TuyaMatter
 
     private def probe(config : SwitchConfig, version : Tuya::Version, failures : ProbeFailures) : Bool?
       client = config.client(version, timeout: PROBE_TIMEOUT)
-      client.on?
+      read_power(client)
     rescue error : Tuya::Error | KeyError | IO::Error
       failures[failure_message(error)] << version
       nil
@@ -92,10 +92,18 @@ module TuyaMatter
       client.try(&.close)
     end
 
+    private def read_power(client : Tuya::Client) : Bool
+      client.on?
+    rescue error : KeyError
+      raise error unless @config.try(&.assume_off_when_missing?)
+
+      false
+    end
+
     private def write_power(desired : Bool?) : Status
       @operations.synchronize do
         client = @client || return Status.failure
-        value = desired.nil? ? !client.on? : desired
+        value = desired.nil? ? !read_power(client) : desired
         client.on = value
         report(value)
         Status.success
