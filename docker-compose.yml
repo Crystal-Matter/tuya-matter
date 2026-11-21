@@ -1,5 +1,6 @@
 services:
   tuya-matter:
+    container_name: tuya
     image: stakach/tuya-matter:latest
     # build: .
     network_mode: host
