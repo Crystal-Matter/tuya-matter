@@ -1,6 +1,6 @@
 # Tuya Matter
 
-Bridge Tuya LAN power switches to a Matter controller. The bridge exposes each switch as an On/Off Plug-in Unit. It forwards On, Off, and Toggle commands, polls each switch every five seconds, and reports unreachable devices independently. [Tuya client](https://github.com/stakach/tuya-client) · [Crystal Matter](https://github.com/Crystal-Matter/matter)
+Bridge Tuya LAN power switches to a Matter controller. The bridge exposes each switch as an On/Off Plug-in Unit. It forwards On, Off, and Toggle commands, polls each switch every 15 seconds, and reports unreachable devices independently. [Tuya client](https://github.com/stakach/tuya-client) · [Crystal Matter](https://github.com/Crystal-Matter/matter)
 
 ## Configuration
 
@@ -39,7 +39,7 @@ Set `assume_off_when_missing: false` to treat a status reply that omits the powe
 
 Endpoint 0 is the Matter root and endpoint 1 is the bridge aggregator. On a fresh setup, the first two switches use endpoints 2 and 3. The bridge keeps assigned endpoint numbers in Matter state across restarts and identifies each switch by name and address in its logs.
 
-After a switch comes online, the bridge tolerates ten consecutive failed status polls, such as when you lift a kettle off its base. The eleventh failed poll or any failed power command marks the switch unreachable. The next successful poll or power command restores reachability.
+After a switch comes online, the bridge marks it unreachable on the fifth consecutive failed status poll or as soon as a power command fails. A successful poll or power command restores reachability and resets the failure count.
 
 Some Tuya devices accept only one local TCP client at a time. If a device resets connections, close other apps or integrations using it before retrying. [TinyTuya troubleshooting](https://github.com/jasonacox/tinytuya#troubleshooting)
 

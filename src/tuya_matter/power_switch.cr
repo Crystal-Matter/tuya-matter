@@ -6,7 +6,7 @@ module TuyaMatter
     private alias ProbeFailures = Hash(String, Array(Tuya::Version))
 
     private PROBE_TIMEOUT        = 1.5.seconds
-    private STATUS_FAILURE_LIMIT = 10
+    private STATUS_FAILURE_LIMIT = 5
 
     @config : SwitchConfig?
     @client : Tuya::Client?
@@ -149,8 +149,8 @@ module TuyaMatter
       message = failure_message(error)
       if @info.try(&.reachable?)
         @status_failures += 1
-        if @status_failures <= STATUS_FAILURE_LIMIT
-          Log.debug { "Tuya switch #{switch_description} status poll failed (#{@status_failures}/#{STATUS_FAILURE_LIMIT} tolerated). #{message}" }
+        if @status_failures < STATUS_FAILURE_LIMIT
+          Log.debug { "Tuya switch #{switch_description} status poll failed (#{@status_failures}/#{STATUS_FAILURE_LIMIT}). #{message}" }
           return
         end
       end

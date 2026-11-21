@@ -93,7 +93,7 @@ describe TuyaMatter::Bridge do
     fixture.try &.close
   end
 
-  it "tolerates ten consecutive failed polls and marks failed power commands immediately" do
+  it "marks a switch unreachable on the fifth consecutive failed poll or a failed power command" do
     fixture = TuyaFixture.new
     bridge = bridge_for(config_for(switch_entry("Kettle", fixture.port)))
     endpoint = bridge.node.endpoint!(2_u16)
@@ -105,7 +105,7 @@ describe TuyaMatter::Bridge do
 
     2.times do
       fixture.reset_connections = true
-      10.times do
+      4.times do
         power.refresh
         info.reachable?.should be_true
       end
@@ -115,7 +115,7 @@ describe TuyaMatter::Bridge do
     end
 
     fixture.reset_connections = true
-    10.times { power.refresh }
+    4.times { power.refresh }
     info.reachable?.should be_true
     power.refresh
     info.reachable?.should be_false
@@ -165,7 +165,7 @@ describe TuyaMatter::Bridge do
     fixture.writes.should be_empty
 
     fixture.close
-    11.times { power.refresh }
+    5.times { power.refresh }
     info.reachable?.should be_false
   ensure
     bridge.try &.shutdown!

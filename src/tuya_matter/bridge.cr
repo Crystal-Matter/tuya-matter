@@ -1,7 +1,7 @@
 module TuyaMatter
   class Bridge < Matter::Device
     AGGREGATOR_ENDPOINT = 1_u16
-    DEFAULT_POLL        = 5.seconds
+    DEFAULT_POLL        = 15.seconds
 
     private alias Info = Matter::Cluster::BridgedDeviceBasicInformation
     private record Identity, discriminator : UInt16, pin : UInt32, unique_id : String
