@@ -1,4 +1,5 @@
 require "spec"
+require "log/spec"
 require "../src/tuya_matter"
 require "./support/tuya_fixture"
 
@@ -72,6 +73,28 @@ describe TuyaMatter::Bridge do
     bridge.try &.shutdown!
     first.try &.close
     second.try &.close
+  end
+
+  it "identifies the endpoint and the socket error when a device resets connections" do
+    fixture = TuyaFixture.new(reset_connections: true)
+
+    Log.capture("tuya_matter") do |logs|
+      bridge = bridge_for(config_for(switch_entry("first", 6668), switch_entry("second", fixture.port, "Upstairs Kettle")))
+      endpoint = bridge.node.endpoint!(3_u16)
+      endpoint.get_cluster!(TuyaMatter::PowerSwitch).refresh
+      endpoint.get_cluster!(Info).reachable?.should be_false
+
+      logs.check(:info, /Configured Tuya switch "Upstairs Kettle" at 127\.0\.0\.1:\d+ \(Matter endpoint 3\)/)
+      logs.check(:warn, /"Upstairs Kettle" at 127\.0\.0\.1:\d+ \(Matter endpoint 3\) is unreachable\. Status probes failed/)
+      logs.entry.message.should contain("Connection reset by peer")
+      logs.entry.message.should contain("3.5")
+      logs.entry.message.should contain("3.1")
+      logs.entry.message.should_not contain("#<TCPSocket:")
+    ensure
+      bridge.try &.shutdown!
+    end
+  ensure
+    fixture.try &.close
   end
 
   it "persists commissioning identity and endpoint numbers across config edits" do

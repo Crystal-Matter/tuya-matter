@@ -30,6 +30,12 @@ power_switch:
 
 The bridge detects each device’s Tuya version using LAN announcements and a status query. Devices that are offline are retried in the background. Restart the bridge after editing the config.
 
+### Matter endpoints and connectivity
+
+Endpoint 0 is the Matter root and endpoint 1 is the bridge aggregator. On a fresh setup, the first two switches use endpoints 2 and 3. The bridge keeps assigned endpoint numbers in Matter state across restarts and identifies each switch by name and address in its logs.
+
+Some Tuya devices accept only one local TCP client at a time. If a device resets connections, close other apps or integrations using it before retrying. [TinyTuya troubleshooting](https://github.com/jasonacox/tinytuya#troubleshooting)
+
 ## Docker Compose
 
 Run these commands on a Linux host on the same LAN as the Matter controller and Tuya devices.

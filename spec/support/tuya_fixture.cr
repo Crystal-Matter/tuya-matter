@@ -9,12 +9,16 @@ class TuyaFixture
   @socket : TCPSocket?
   @done = Channel(Nil).new
 
-  def initialize
+  def initialize(@reset_connections : Bool = false)
     spawn do
       while socket = @server.accept?
         @socket = socket
         begin
-          serve(socket)
+          if @reset_connections
+            socket.linger = 0
+          else
+            serve(socket)
+          end
         rescue IO::Error | Tuya::ProtocolError
           # The client disconnected or tried a different protocol.
         ensure

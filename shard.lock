@@ -46,7 +46,7 @@ shards:
 
   tuya_client:
     git: https://github.com/stakach/tuya-client.git
-    version: 0.1.0+git.commit.d094fda43182ebdd8d2cb64e355d2c989873cdae
+    version: 0.1.0+git.commit.fedbfd0e6e5f994342523e357641efff12bd0942
 
   verhoeff:
     git: https://github.com/crystal-matter/verhoeff.git
