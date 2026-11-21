@@ -97,14 +97,14 @@ describe TuyaMatter::Bridge do
     fixture.try &.close
   end
 
-  it "assumes off for an omitted datapoint only when enabled" do
-    enabled = TuyaFixture.new
-    default = TuyaFixture.new
-    enabled.omit_power_datapoint = true
-    default.omit_power_datapoint = true
+  it "assumes off for an omitted datapoint unless disabled" do
+    fixture = TuyaFixture.new
+    strict = TuyaFixture.new
+    fixture.omit_power_datapoint = true
+    strict.omit_power_datapoint = true
     bridge = bridge_for(config_for(
-      switch_entry("first", enabled.port).merge({assume_off_when_missing: true}),
-      switch_entry("second", default.port),
+      switch_entry("first", fixture.port),
+      switch_entry("second", strict.port).merge({assume_off_when_missing: false}),
     ))
 
     first = bridge.node.endpoint!(2_u16)
@@ -113,25 +113,25 @@ describe TuyaMatter::Bridge do
     power.refresh
     info.reachable?.should be_true
     power.on_off?.should be_false
-    enabled.writes.should be_empty
+    fixture.writes.should be_empty
 
     second = bridge.node.endpoint!(3_u16)
     second.get_cluster!(TuyaMatter::PowerSwitch).refresh
     second.get_cluster!(Info).reachable?.should be_false
 
-    enabled.on = true
-    enabled.omit_power_datapoint = false
+    fixture.on = true
+    fixture.omit_power_datapoint = false
     power.refresh
     power.on_off?.should be_true
-    enabled.writes.should be_empty
+    fixture.writes.should be_empty
 
-    enabled.close
+    fixture.close
     power.refresh
     info.reachable?.should be_false
   ensure
     bridge.try &.shutdown!
-    enabled.try &.close
-    default.try &.close
+    fixture.try &.close
+    strict.try &.close
   end
 
   it "persists commissioning identity and endpoint numbers across config edits" do

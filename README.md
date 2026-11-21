@@ -26,12 +26,12 @@ power_switch:
 | `version` | Automatic | Optional protocol override, from `"3.1"` through `"3.5"` |
 | `port` | `6668` | Tuya TCP port |
 | `datapoint` | `1` | Boolean power datapoint |
-| `assume_off_when_missing` | `false` | Report Off when a successful status reply omits the power datapoint |
+| `assume_off_when_missing` | `true` | Report Off when a successful status reply omits the power datapoint |
 | `query_datapoints` | Device default | IDs to query for devices that use the device22 query format. Include the power datapoint. |
 
 The bridge detects each device’s Tuya version using LAN announcements and a status query. Devices that are offline are retried in the background. Restart the bridge after editing the config.
 
-Enable `assume_off_when_missing: true` for a switch whose firmware omits the power datapoint when off. The bridge still uses an explicit power value when the device reports one.
+Set `assume_off_when_missing: false` to mark a switch unreachable when a status reply omits its power datapoint. The bridge always uses an explicit power value when the device reports one.
 
 ### Matter endpoints and connectivity
 
