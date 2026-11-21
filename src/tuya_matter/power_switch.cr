@@ -5,12 +5,14 @@ module TuyaMatter
     private alias Info = Matter::Cluster::BridgedDeviceBasicInformation
     private alias ProbeFailures = Hash(String, Array(Tuya::Version))
 
-    private PROBE_TIMEOUT = 1.5.seconds
+    private PROBE_TIMEOUT        = 1.5.seconds
+    private STATUS_FAILURE_LIMIT = 10
 
     @config : SwitchConfig?
     @client : Tuya::Client?
     @info : Info?
     @last_failure : String?
+    @status_failures = 0
     @operations = Mutex.new
 
     def attach(config : SwitchConfig, info : Info) : Nil
@@ -46,7 +48,7 @@ module TuyaMatter
           @client.try(&.close)
           @client = nil
         end
-        report_failure(error)
+        report_status_failure(error)
       end
     end
 
@@ -102,16 +104,17 @@ module TuyaMatter
 
     private def write_power(desired : Bool?) : Status
       @operations.synchronize do
-        client = @client || return Status.failure
+        unless client = @client
+          report_failure("Power command failed. Tuya protocol is unavailable")
+          return Status.failure
+        end
+
         value = desired.nil? ? !read_power(client) : desired
         client.on = value
         report(value)
         Status.success
-      rescue error : Tuya::DeviceError
-        Log.warn { "Tuya switch #{switch_description} rejected a command (code #{error.code})" }
-        Status.failure
       rescue error : Tuya::Error | KeyError | IO::Error
-        report_failure(error)
+        report_failure("Power command failed. #{failure_message(error)}")
         Status.failure
       end
     end
@@ -119,6 +122,7 @@ module TuyaMatter
     private def report(value : Bool) : Nil
       self.on_off = value
       @info.try(&.reachable=(true))
+      @status_failures = 0
       @last_failure = nil
     end
 
@@ -141,9 +145,21 @@ module TuyaMatter
       cause.try(&.message) || error.message || error.class.name
     end
 
-    private def report_failure(error : Exception) : Nil
-      @info.try(&.reachable=(false))
+    private def report_status_failure(error : Exception) : Nil
       message = failure_message(error)
+      if @info.try(&.reachable?)
+        @status_failures += 1
+        if @status_failures <= STATUS_FAILURE_LIMIT
+          Log.debug { "Tuya switch #{switch_description} status poll failed (#{@status_failures}/#{STATUS_FAILURE_LIMIT} tolerated). #{message}" }
+          return
+        end
+      end
+
+      report_failure(message)
+    end
+
+    private def report_failure(message : String) : Nil
+      @info.try(&.reachable=(false))
       if message != @last_failure
         Log.warn { "Tuya switch #{switch_description} is unreachable. #{message}" }
         @last_failure = message

@@ -60,10 +60,6 @@ describe TuyaMatter::Bridge do
     first.reject_commands = true
     cluster.invoke_command(0_u32).should eq(Status.failure)
     cluster.on_off?.should be_true
-    info.reachable?.should be_true
-
-    first.close
-    cluster.refresh
     info.reachable?.should be_false
     other_switch = bridge.node.endpoint!(3_u16).get_cluster!(TuyaMatter::PowerSwitch)
     other_switch.refresh
@@ -97,6 +93,49 @@ describe TuyaMatter::Bridge do
     fixture.try &.close
   end
 
+  it "tolerates ten consecutive failed polls and marks failed power commands immediately" do
+    fixture = TuyaFixture.new
+    bridge = bridge_for(config_for(switch_entry("Kettle", fixture.port)))
+    endpoint = bridge.node.endpoint!(2_u16)
+    power = endpoint.get_cluster!(TuyaMatter::PowerSwitch)
+    info = endpoint.get_cluster!(Info)
+
+    power.refresh
+    info.reachable?.should be_true
+
+    2.times do
+      fixture.reset_connections = true
+      10.times do
+        power.refresh
+        info.reachable?.should be_true
+      end
+      fixture.reset_connections = false
+      power.refresh
+      info.reachable?.should be_true
+    end
+
+    fixture.reset_connections = true
+    10.times { power.refresh }
+    info.reachable?.should be_true
+    power.refresh
+    info.reachable?.should be_false
+
+    fixture.reset_connections = false
+    power.refresh
+    info.reachable?.should be_true
+
+    fixture.reset_connections = true
+    power.refresh
+    info.reachable?.should be_true
+    power.invoke_command(1_u32).should eq(Status.failure)
+    info.reachable?.should be_false
+    power.on_off?.should be_false
+    fixture.writes.should be_empty
+  ensure
+    bridge.try &.shutdown!
+    fixture.try &.close
+  end
+
   it "assumes off for an omitted datapoint unless disabled" do
     fixture = TuyaFixture.new
     strict = TuyaFixture.new
@@ -126,7 +165,7 @@ describe TuyaMatter::Bridge do
     fixture.writes.should be_empty
 
     fixture.close
-    power.refresh
+    11.times { power.refresh }
     info.reachable?.should be_false
   ensure
     bridge.try &.shutdown!

@@ -36,6 +36,11 @@ class TuyaFixture
     @server.local_address.port
   end
 
+  def reset_connections=(value : Bool) : Nil
+    @reset_connections = value
+    @socket.try(&.close) if value
+  end
+
   def close : Nil
     @server.close
     @socket.try(&.close)

@@ -33,11 +33,13 @@ power_switch:
 
 The bridge detects each device’s Tuya version using LAN announcements and a status query. Devices that are offline are retried in the background. Restart the bridge after editing the config.
 
-Set `assume_off_when_missing: false` to mark a switch unreachable when a status reply omits its power datapoint. The bridge always uses an explicit power value when the device reports one.
+Set `assume_off_when_missing: false` to treat a status reply that omits the power datapoint as a failed poll. The bridge always uses an explicit power value when the device reports one.
 
 ### Matter endpoints and connectivity
 
 Endpoint 0 is the Matter root and endpoint 1 is the bridge aggregator. On a fresh setup, the first two switches use endpoints 2 and 3. The bridge keeps assigned endpoint numbers in Matter state across restarts and identifies each switch by name and address in its logs.
+
+After a switch comes online, the bridge tolerates ten consecutive failed status polls, such as when you lift a kettle off its base. The eleventh failed poll or any failed power command marks the switch unreachable. The next successful poll or power command restores reachability.
 
 Some Tuya devices accept only one local TCP client at a time. If a device resets connections, close other apps or integrations using it before retrying. [TinyTuya troubleshooting](https://github.com/jasonacox/tinytuya#troubleshooting)
 
