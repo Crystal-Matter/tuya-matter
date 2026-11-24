@@ -3,6 +3,8 @@ module TuyaMatter
     DEFAULT_CONFIG  = "config.yaml"
     DEFAULT_STORAGE = "data/tuya-matter.yml"
 
+    private NETWORK_RETRY_INTERVAL = 1.second
+
     HELP = <<-TEXT
       Usage: tuya-matter
 
@@ -24,12 +26,15 @@ module TuyaMatter
       config = Config.parse(File.read(config_path))
       storage_path = ENV["MATTER_STORAGE_FILE"]? || DEFAULT_STORAGE
       port = matter_port(ENV["MATTER_PORT"]?)
-      Dir.mkdir_p(File.dirname(storage_path), mode: 0o700)
-      storage = Matter::Storage::YamlFile.new(storage_path)
-      bridge = Bridge.new(config, storage, port: port)
 
       stopping = Channel(Nil).new
       Process.on_terminate { stopping.close }
+      return 0 unless ip_addresses = wait_for_network(stopping)
+
+      Dir.mkdir_p(File.dirname(storage_path), mode: 0o700)
+      storage = Matter::Storage::YamlFile.new(storage_path)
+      bridge = Bridge.new(config, storage, port: port, ip_addresses: ip_addresses)
+
       bridge.start
       return 1 unless bridge.running?
 
@@ -44,6 +49,22 @@ module TuyaMatter
       1
     ensure
       storage.try { |backend| backend.close if backend.open? }
+    end
+
+    private def self.wait_for_network(stopping : Channel(Nil)) : Array(Socket::IPAddress)?
+      addresses = Matter::Network.local_ip_addresses_by_interface.values.flatten
+      if addresses.empty?
+        Log.warn { "Waiting for a usable LAN address before starting Matter" }
+        while addresses.empty?
+          select
+          when stopping.receive?
+            return
+          when timeout(NETWORK_RETRY_INTERVAL)
+            addresses = Matter::Network.local_ip_addresses_by_interface.values.flatten
+          end
+        end
+      end
+      Matter::Network.select_local_ip_addresses(addresses)
     end
 
     private def self.matter_port(value : String?) : Int32

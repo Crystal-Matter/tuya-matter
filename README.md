@@ -49,6 +49,8 @@ Run these commands on a Linux host on the same LAN as the Matter controller and 
 
 Compose mounts `./config.yaml` read-only and stores Matter state in `./matter-data/`. Host networking provides Matter UDP and multicast DNS. The container user needs read access to `config.yaml`.
 
+After a host reboot, the bridge waits for a usable LAN address before advertising itself to Matter controllers.
+
 Compose runs as UID and GID 1000 by default. To run as a different deployment account, set `MATTER_UID` and `MATTER_GID` in `.env` to that account's `id -u` and `id -g`.
 
 Make sure the container user can write to `matter-data/` and any restored files before starting Compose. If you need to fix ownership, this command uses the default IDs.
